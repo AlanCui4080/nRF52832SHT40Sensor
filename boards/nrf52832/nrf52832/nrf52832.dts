@@ -1,0 +1,113 @@
+/dts-v1/;
+#include <nordic/nrf52832_qfaa.dtsi>
+#include "nrf52832-pinctrl.dtsi"
+
+/ {
+	model = "nrf52832";
+	compatible = "nrf52832,nrf52832";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+	};
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 DT_SIZE_K(48)>;
+		};
+
+		slot0_partition: partition@c000 {
+			label = "image-0";
+			reg = <0x0000c000 DT_SIZE_K(220)>;
+		};
+
+		slot1_partition: partition@43000 {
+			label = "image-1";
+			reg = <0x00043000 DT_SIZE_K(220)>;
+		};
+
+		storage_partition: partition@7a000 {
+			label = "storage";
+			reg = <0x0007a000 DT_SIZE_K(24)>;
+		};
+	};
+};
+&i2c0 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-1 = <&i2c0_sleep>;
+	pinctrl-names = "default", "sleep";
+	sht4x@44 {
+		status = "okay";
+		compatible = "sensirion,sht4x";
+		repeatability = <2>;
+		reg = <0x44>;
+		zephyr,pm-device-runtime-auto;
+	};
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&pinctrl {
+	i2c0_default: i2c0_default {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SCL, 0, 26)>, <NRF_PSEL(TWIM_SDA, 0, 25)>;
+		};
+	};
+
+	i2c0_sleep: i2c0_sleep {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SCL, 0, 25)>;
+		};
+	};
+};
+
+&power {
+	status = "okay";
+};
+
+&reg {
+	regulator-initial-mode = <NRF5X_REG_MODE_DCDC>;
+	status = "okay";
+};
+
+&rng {
+	status = "okay";
+};
+
+&ecb {
+	status = "okay";
+};
+
+&uicr {
+	status = "okay";
+};
+
+&temp {
+	status = "disabled";
+};
+
+&adc {
+	status = "okay";
+
+	// channel@9 {
+	// 	status = "okay";
+	// 	reg = <9>;
+	// 	zephyr,gain = "ADC_GAIN_1_4";
+	// 	zephyr,reference = "ADC_REF_INTERNAL";
+	// 	zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+	// 	zephyr,input-positive = <NRF_SAADC_INPUT_VDD>;
+	// 	zephyr,resolution = <12>;
+	// };
+};
