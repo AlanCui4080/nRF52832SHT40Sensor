@@ -17,12 +17,12 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
 static const struct device* sht40_device;
 
-static int16_t  historical_temperature = 0;
-static uint16_t historical_humidity    = 0;
-static int16_t  perv_temperature       = 0;
-static uint16_t perv_humidity          = 0;
+// static int16_t  historical_temperature = 0;
+// static uint16_t historical_humidity    = 0;
+// static int16_t  perv_temperature       = 0;
+// static uint16_t perv_humidity          = 0;
 
-static int should_immdately_adv = 0;
+// static int should_immdately_adv = 0;
 
 #if CONFIG_BT_ID_MAX > 1
 #error "This application supports only one Bluetooth identity"
@@ -137,37 +137,37 @@ void sensor_sample_timer_handler(struct k_timer* timer)
     sensor_channel_get(sht40_device, SENSOR_CHAN_AMBIENT_TEMP, &sht40_t); // data zero initialized so failure is
     sensor_channel_get(sht40_device, SENSOR_CHAN_HUMIDITY, &sht40_rh);
 
-    perv_temperature     = raw_data.temperature;
-    perv_humidity        = raw_data.humidity;
+    // perv_temperature     = raw_data.temperature;
+    // perv_humidity        = raw_data.humidity;
     raw_data.temperature = (int16_t)(sht40_t.val1 * 100 + sht40_t.val2 / 10000);
     raw_data.humidity    = (uint16_t)(sht40_rh.val1 * 100 + sht40_rh.val2 / 10000);
 
     LOG_INF("sample fetched from SHT4X device: temp=%hd, humidity=%hu", raw_data.temperature, raw_data.humidity);
 
     //
-    should_immdately_adv = 0;
-    if (abs(raw_data.temperature - historical_temperature) >= 30) // 0.3 degree C
-    {
-        historical_temperature = raw_data.temperature;
-        should_immdately_adv   = 1;
-        LOG_INF("significant temperature change detected(peak): %hd", raw_data.temperature);
-    }
-    if (abs(raw_data.temperature - perv_temperature) >= 20) // 0.2 degree C
-    {
-        should_immdately_adv = 1;
-        LOG_INF("significant temperature change detected(slope): %hd", raw_data.temperature);
-    }
-    if (abs(raw_data.humidity - historical_humidity) >= 50) // 0.5% RH
-    {
-        historical_humidity  = raw_data.humidity;
-        should_immdately_adv = 1;
-        LOG_INF("significant humidity change detected(peak): %hu", raw_data.humidity);
-    }
-    if (abs(raw_data.humidity - perv_humidity) >= 25) // 0.25% RH
-    {
-        should_immdately_adv = 1;
-        LOG_INF("significant humidity change detected(slope): %hu", raw_data.humidity);
-    }
+    // should_immdately_adv = 0;
+    // if (abs(raw_data.temperature - historical_temperature) >= 30) // 0.3 degree C
+    // {
+    //     historical_temperature = raw_data.temperature;
+    //     should_immdately_adv   = 1;
+    //     LOG_INF("significant temperature change detected(peak): %hd", raw_data.temperature);
+    // }
+    // if (abs(raw_data.temperature - perv_temperature) >= 20) // 0.2 degree C
+    // {
+    //     should_immdately_adv = 1;
+    //     LOG_INF("significant temperature change detected(slope): %hd", raw_data.temperature);
+    // }
+    // if (abs(raw_data.humidity - historical_humidity) >= 50) // 0.5% RH
+    // {
+    //     historical_humidity  = raw_data.humidity;
+    //     should_immdately_adv = 1;
+    //     LOG_INF("significant humidity change detected(peak): %hu", raw_data.humidity);
+    // }
+    // if (abs(raw_data.humidity - perv_humidity) >= 25) // 0.25% RH
+    // {
+    //     should_immdately_adv = 1;
+    //     LOG_INF("significant humidity change detected(slope): %hu", raw_data.humidity);
+    // }
 }
 K_TIMER_DEFINE(sensor_sample_timer, sensor_sample_timer_handler, NULL);
 
@@ -523,6 +523,9 @@ int main(void)
     LOG_INF("starting battery monitoring timer");
     k_timer_start(&battery_sample_timer, K_NO_WAIT, K_MSEC(BATTERY_SAMPLE_INTERVAL_MS));
 
+    LOG_INF("starting sensor timer");
+    k_timer_start(&sensor_sample_timer, K_NO_WAIT, K_MSEC(SENSOR_SAMPLE_INTERVAL_MS));
+
     LOG_INF("fetching sht40");
     sht40_device = DEVICE_DT_GET_ANY(sensirion_sht4x);
     if (sht40_device == NULL)
@@ -617,13 +620,13 @@ int main(void)
     //     return -1;
     // }
     // advertising_payload.counter++;
-    static int use_shorten_period = 0;
+    // static int use_shorten_period = 0;
     while (1)
     {
-        if (should_immdately_adv)
-        {
-            use_shorten_period = 10;
-        }
+        // if (should_immdately_adv)
+        // {
+        //     use_shorten_period = 10;
+        // }
 
         if (memcmp(uicr_predefined_key, "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 16) != 0)
         {
@@ -649,15 +652,15 @@ int main(void)
         advertising_payload.counter++;
 
         //
-        if (use_shorten_period > 0)
-        {
-            use_shorten_period--;
-            k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_SHORTEN_ADV_MIN_INTERVAL)));
-        }
-        else
-        {
-            k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_ADV_MIN_INTERVAL)));
-        }
+        // if (use_shorten_period > 0)
+        // {
+        //     use_shorten_period--;
+        //     k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_SHORTEN_ADV_MIN_INTERVAL)));
+        // }
+        // else
+        // {
+        k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_ADV_MIN_INTERVAL)));
+        // }
     }
 
     //     for (;;)

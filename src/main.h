@@ -38,9 +38,9 @@ struct bthome_payload
 } __attribute__((packed));
 
 #define BT_ADV_MIN_INTERVAL         8224  // 5.140s
-#define BT_SHORTEN_ADV_MIN_INTERVAL 4112  // 2.570s
+// #define BT_SHORTEN_ADV_MIN_INTERVAL 4112  // 2.570s
 #define BT_ADV_MAX_INTERVAL         10280 // 6.425s
-#define BT_SHORTEN_ADV_MAX_INTERVAL 6168  // 3.855s
+// #define BT_SHORTEN_ADV_MAX_INTERVAL 6168  // 3.855s
 
 #define BATTERY_SAMPLE_INTERVAL_MS  600000 // 600s
 #define SENSOR_SAMPLE_INTERVAL_MS   20000  // 20s
