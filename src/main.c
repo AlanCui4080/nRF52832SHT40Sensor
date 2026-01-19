@@ -17,13 +17,6 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
 static const struct device* sht40_device;
 
-// static int16_t  historical_temperature = 0;
-// static uint16_t historical_humidity    = 0;
-// static int16_t  perv_temperature       = 0;
-// static uint16_t perv_humidity          = 0;
-
-// static int should_immdately_adv = 0;
-
 #if CONFIG_BT_ID_MAX > 1
 #error "This application supports only one Bluetooth identity"
 #endif
@@ -34,8 +27,6 @@ static uint8_t       encryption_nonce[16] = { 0 }; // actually 13 bytes
 static const uint8_t predefined_key[16]   = { 0x8b, 0xa5, 0x91, 0xa5, 0xef, 0x8f, 0xd5, 0x99,
                                               0x90, 0x31, 0x6d, 0x38, 0xe0, 0x4a, 0xe9, 0xed };
 
-// #define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_EXT_ADV, BT_GAP_ADV_SLOW_INT_MIN,
-// BT_GAP_ADV_SLOW_INT_MAX, NULL)
 #define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, BT_ADV_MIN_INTERVAL, BT_ADV_MAX_INTERVAL, NULL)
 
 static struct bthome_raw_data raw_data = { .battery_object_id     = BTHOMEV2_OBJID_BATTERY_U8_1,
@@ -137,114 +128,12 @@ void sensor_sample_timer_handler(struct k_timer* timer)
     sensor_channel_get(sht40_device, SENSOR_CHAN_AMBIENT_TEMP, &sht40_t); // data zero initialized so failure is
     sensor_channel_get(sht40_device, SENSOR_CHAN_HUMIDITY, &sht40_rh);
 
-    // perv_temperature     = raw_data.temperature;
-    // perv_humidity        = raw_data.humidity;
     raw_data.temperature = (int16_t)(sht40_t.val1 * 100 + sht40_t.val2 / 10000);
     raw_data.humidity    = (uint16_t)(sht40_rh.val1 * 100 + sht40_rh.val2 / 10000);
 
     LOG_INF("sample fetched from SHT4X device: temp=%hd, humidity=%hu", raw_data.temperature, raw_data.humidity);
-
-    //
-    // should_immdately_adv = 0;
-    // if (abs(raw_data.temperature - historical_temperature) >= 30) // 0.3 degree C
-    // {
-    //     historical_temperature = raw_data.temperature;
-    //     should_immdately_adv   = 1;
-    //     LOG_INF("significant temperature change detected(peak): %hd", raw_data.temperature);
-    // }
-    // if (abs(raw_data.temperature - perv_temperature) >= 20) // 0.2 degree C
-    // {
-    //     should_immdately_adv = 1;
-    //     LOG_INF("significant temperature change detected(slope): %hd", raw_data.temperature);
-    // }
-    // if (abs(raw_data.humidity - historical_humidity) >= 50) // 0.5% RH
-    // {
-    //     historical_humidity  = raw_data.humidity;
-    //     should_immdately_adv = 1;
-    //     LOG_INF("significant humidity change detected(peak): %hu", raw_data.humidity);
-    // }
-    // if (abs(raw_data.humidity - perv_humidity) >= 25) // 0.25% RH
-    // {
-    //     should_immdately_adv = 1;
-    //     LOG_INF("significant humidity change detected(slope): %hu", raw_data.humidity);
-    // }
 }
 K_TIMER_DEFINE(sensor_sample_timer, sensor_sample_timer_handler, NULL);
-
-//
-//
-// Sensor
-//
-//
-
-// K_THREAD_STACK_DEFINE(sensor_thread_stack, 1024);
-// struct k_thread sensor_thread;
-
-// void sensor_handle(void* p1, void* p2, void* p3)
-// {
-//     LOG_INF("starting sensor thread");
-//     k_timer_start(&battery_sample_timer, K_NO_WAIT, K_MSEC(BATTERY_SAMPLE_INTERVAL_MS));
-
-//     LOG_INF("fetching sht40");
-//     sht40_device = DEVICE_DT_GET_ANY(sensirion_sht4x);
-//     if (sht40_device == NULL)
-//     {
-//         LOG_ERR("sht40 device not found");
-//         return;
-//     }
-//     else
-//     {
-//         LOG_INF("sht40 device found: %s", sht40_device->name);
-//     }
-
-//     if (!device_is_ready(sht40_device))
-//     {
-//         LOG_ERR("sht40 %s is not ready", sht40_device->name);
-//         return;
-//     }
-//     else
-//     {
-//         LOG_INF("sht40 %s device ready", sht40_device->name);
-//     }
-
-//     while (1)
-//     {
-//         //
-//         // fetch temperature and humidity from SHT4X sensor
-//         //
-//         if (sht40_device == NULL)
-//         {
-//             LOG_ERR("SHT4X device pointer is NULL");
-//             continue;
-//         }
-//         if (sensor_sample_fetch(sht40_device))
-//         {
-//             LOG_ERR("fetch sample from SHT4X device failed ");
-//             continue;
-//         }
-
-//         struct sensor_value sht40_t  = { 0 };
-//         struct sensor_value sht40_rh = { 0 };
-
-//         sensor_channel_get(sht40_device, SENSOR_CHAN_AMBIENT_TEMP, &sht40_t); // data zero initialized so failure is
-//         sensor_channel_get(sht40_device, SENSOR_CHAN_HUMIDITY, &sht40_rh);
-
-//         perv_temperature     = raw_data.temperature;
-//         perv_humidity        = raw_data.humidity;
-//         raw_data.temperature = (int16_t)(sht40_t.val1 * 100 + sht40_t.val2 / 10000);
-//         raw_data.humidity    = (uint16_t)(sht40_rh.val1 * 100 + sht40_rh.val2 / 10000);
-
-//         LOG_INF("sample fetched from SHT4X device: temp=%hd, humidity=%hu", raw_data.temperature, raw_data.humidity);
-
-//         k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_ADV_MIN_INTERVAL)));
-//     }
-// }
-
-//
-//
-// BT
-//
-//
 
 static int encrypt_init()
 {
@@ -298,12 +187,7 @@ static int encrypt_payload(
     }
 
     memcpy(nonce + 9, &(payload->counter), 4);
-
     uint8_t enc_data_buffer[sizeof(struct bthome_raw_data) + 4] = { 0 };
-    // LOG_HEXDUMP_INF(raw_data, sizeof(struct bthome_raw_data), "raw_data to encrypt:");
-    // LOG_HEXDUMP_INF(&(payload->counter), 4, "counter to encrypt:");
-    // LOG_HEXDUMP_INF(nonce, 13, "nonce to encrypt:");
-    // LOG_HEXDUMP_INF(key, 16, "key to encrypt:");
 
     int result =
         bt_ccm_encrypt(key, nonce, (uint8_t*)raw_data, sizeof(struct bthome_raw_data), NULL, 0, enc_data_buffer, 4);
@@ -313,14 +197,8 @@ static int encrypt_payload(
         return result;
     }
 
-    // LOG_HEXDUMP_INF(enc_data_buffer, sizeof(struct bthome_raw_data) + 4, "encrypted data + mic:");
-
     memcpy(&(payload->encrypted_data), enc_data_buffer, sizeof(struct bthome_raw_data));
     memcpy(&(payload->mic), enc_data_buffer + sizeof(struct bthome_raw_data), 4);
-
-    // LOG_HEXDUMP_INF(&(payload->encrypted_data), sizeof(struct bthome_raw_data), "payload encrypted_data:");
-    // LOG_HEXDUMP_INF(&(payload->counter), 4, "payload counter:");
-    // LOG_HEXDUMP_INF(&(payload->mic), 4, "payload mic:");
 
     return result;
 }
@@ -332,27 +210,6 @@ static void bt_ready(int result)
         LOG_ERR("bluetooth init failed: %d", result);
         return;
     }
-
-    // bt_le_ext_adv_create(ADV_PARAM, NULL, &adv_set_ptr);
-    // if (result)
-    // {
-    //     LOG_ERR("bluetooth extadvertising failed to create adv set: %d", result);
-    //     return;
-    // }
-
-    // result = bt_le_ext_adv_set_data(adv_set_ptr, advertising_data, ARRAY_SIZE(advertising_data), NULL, 0);
-    // if (result)
-    // {
-    //     LOG_ERR("bluetooth extadvertising failed to set data: %d, sizeof(advertising_payload):%d", result,
-    //     sizeof(advertising_payload)); return;
-    // }
-
-    // result = bt_le_ext_adv_start(adv_set_ptr, BT_LE_EXT_ADV_START_DEFAULT);
-    // if (result)
-    // {
-    //     LOG_ERR("bluetooth extadvertising failed to start: %d", result);
-    //     return;
-    // }
 
     result = bt_le_adv_start(
         ADV_PARAM, advertising_data, ARRAY_SIZE(advertising_data), scan_response_data, ARRAY_SIZE(scan_response_data));
@@ -366,155 +223,6 @@ static void bt_ready(int result)
     }
     LOG_INF("bluetooth advertising started");
 }
-// K_THREAD_STACK_DEFINE(bluetooth_thread_stack, 2048);
-// struct k_thread bluetooth_thread;
-//
-// void bluetooth_handle(void* p1, void* p2, void* p3)
-// {
-//     // LOG_INF("enabling bluetooth");
-//     // int result = bt_enable(NULL);
-//     // if (result)
-//     // {
-//     //     LOG_ERR("bluetooth init failed: %d", result);
-//     //     return;
-//     // }
-//     // else
-//     // {
-//     //     LOG_INF("bluetooth ready");
-//     // }
-//     // result = encrypt_init();
-//     // if (result)
-//     // {
-//     //     LOG_ERR("encryption initialization failed: %d", result);
-//     //     return;
-//     // }
-
-//     static size_t timeout_counter = 0;
-//     while (1)
-//     {
-//         int should_immdately_adv = 0;
-//         if (abs(raw_data.temperature - historical_temperature) >= 30) // 0.3 degree C
-//         {
-//             historical_temperature = raw_data.temperature;
-//             should_immdately_adv   = 1;
-//             LOG_INF("significant temperature change detected(peak): %hd", raw_data.temperature);
-//         }
-//         if (abs(raw_data.temperature - perv_temperature) >= 20) // 0.2 degree C
-//         {
-//             should_immdately_adv = 1;
-//             LOG_INF("significant temperature change detected(slope): %hd", raw_data.temperature);
-//         }
-//         if (abs(raw_data.humidity - historical_humidity) >= 50) // 0.5% RH
-//         {
-//             historical_humidity  = raw_data.humidity;
-//             should_immdately_adv = 1;
-//             LOG_INF("significant humidity change detected(peak): %hu", raw_data.humidity);
-//         }
-//         if (abs(raw_data.humidity - perv_humidity) >= 25) // 0.25% RH
-//         {
-//             should_immdately_adv = 1;
-//             LOG_INF("significant humidity change detected(slope): %hu", raw_data.humidity);
-//         }
-
-//         if (should_immdately_adv)
-//         {
-//             LOG_INF("immediate advertising triggered(rate of change)");
-//             int result = bt_le_adv_start(
-//                 ADV_PARAM,
-//                 advertising_data,
-//                 ARRAY_SIZE(advertising_data),
-//                 scan_response_data,
-//                 ARRAY_SIZE(scan_response_data));
-//             if (result)
-//             {
-//                 LOG_ERR(
-//                     "bluetooth adsr failed to set data: %d, sizeof(advertising_payload):%d",
-//                     result,
-//                     sizeof(advertising_payload));
-//                 continue;
-//             }
-//             LOG_INF("bluetooth advertising started");
-//             for (size_t i = 0; i < 30; i++)
-//             {
-//                 result = encrypt_payload(&advertising_payload, &raw_data, encryption_nonce, predefined_key);
-//                 if (result)
-//                 {
-//                     LOG_ERR("payload encryption failed: %d", result);
-//                     break;
-//                 }
-//                 result = bt_le_adv_update_data(
-//                     advertising_data, ARRAY_SIZE(advertising_data), scan_response_data,
-//                     ARRAY_SIZE(scan_response_data));
-//                 if (result)
-//                 {
-//                     LOG_ERR("bluetooth adsr update failed to set data: %d", result);
-//                     break;
-//                 }
-//                 advertising_payload.counter++;
-//                 LOG_INF("bluetooth advertising updated (%d/30)", i + 1);
-//                 k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_ADV_MIN_INTERVAL)));
-//             }
-//             k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_ADV_MIN_INTERVAL * 2)));
-
-//             bt_le_adv_stop();
-//             LOG_INF("bluetooth advertising stopped");
-//         }
-//         else
-//         {
-//             timeout_counter = timeout_counter + 1;
-//             if (timeout_counter > 99)
-//             {
-//                 LOG_INF("immediate advertising triggered(timeout)");
-//                 timeout_counter = 0;
-//                 int result      = bt_le_adv_start(
-//                     ADV_PARAM,
-//                     advertising_data,
-//                     ARRAY_SIZE(advertising_data),
-//                     scan_response_data,
-//                     ARRAY_SIZE(scan_response_data));
-//                 if (result)
-//                 {
-//                     LOG_ERR(
-//                         "bluetooth adsr failed to set data: %d, sizeof(advertising_payload):%d",
-//                         result,
-//                         sizeof(advertising_payload));
-//                     continue;
-//                 }
-//                 LOG_INF("bluetooth advertising started");
-//                 for (size_t i = 0; i < 10; i++)
-//                 {
-//                     result = encrypt_payload(&advertising_payload, &raw_data, encryption_nonce, predefined_key);
-//                     if (result)
-//                     {
-//                         LOG_ERR("payload encryption failed: %d", result);
-//                         break;
-//                     }
-//                     result = bt_le_adv_update_data(
-//                         advertising_data,
-//                         ARRAY_SIZE(advertising_data),
-//                         scan_response_data,
-//                         ARRAY_SIZE(scan_response_data));
-//                     if (result)
-//                     {
-//                         LOG_ERR("bluetooth adsr update failed to set data: %d", result);
-//                         break;
-//                     }
-//                     advertising_payload.counter++;
-//                     LOG_INF("bluetooth advertising updated (%d/10)", i + 1);
-//                     k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_ADV_MIN_INTERVAL)));
-//                 }
-//                 k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_ADV_MIN_INTERVAL * 2)));
-
-//                 bt_le_adv_stop();
-//                 LOG_INF("bluetooth advertising stopped");
-//             }
-//             else
-//             {
-//                 k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_ADV_MIN_INTERVAL)));
-//             }
-//         }
-//     }
-// }
 
 int main(void)
 {
@@ -573,61 +281,8 @@ int main(void)
     {
         LOG_INF("using default predefined key for encryption");
     }
-    // LOG_INF("creating sensor thread");
-    // k_tid_t sensor_tid = k_thread_create(
-    //     &sensor_thread,
-    //     sensor_thread_stack,
-    //     K_THREAD_STACK_SIZEOF(sensor_thread_stack),
-    //     sensor_handle,
-    //     NULL,
-    //     NULL,
-    //     NULL,
-    //     1,
-    //     0,
-    //     K_NO_WAIT);
-    // k_thread_name_set(sensor_tid, "sensor_measurement");
-    // k_thread_start(sensor_tid);
-
-    // LOG_INF("creating bluetooth thread");
-    // k_tid_t bluetooth_tid = k_thread_create(
-    //     &bluetooth_thread,
-    //     bluetooth_thread_stack,
-    //     K_THREAD_STACK_SIZEOF(bluetooth_thread_stack),
-    //     bluetooth_handle,
-    //     NULL,
-    //     NULL,
-    //     NULL,
-    //     0,
-    //     0,
-    //     K_NO_WAIT);
-    // k_thread_name_set(bluetooth_tid, "bluetooth_advertising");
-    // k_thread_start(bluetooth_tid);
-
-    // (void)sensor_tid;
-    // (void)bluetooth_tid;
-
-    // result = encrypt_payload(&advertising_payload, &raw_data, encryption_nonce, predefined_key);
-    // if (result)
-    // {
-    //     LOG_ERR("payload encryption failed: %d", result);
-    //     return -1;
-    // }
-    // result = bt_le_adv_update_data(
-    //     advertising_data, ARRAY_SIZE(advertising_data), scan_response_data, ARRAY_SIZE(scan_response_data));
-    // if (result)
-    // {
-    //     LOG_ERR("bluetooth adsr update failed to set data: %d", result);
-    //     return -1;
-    // }
-    // advertising_payload.counter++;
-    // static int use_shorten_period = 0;
     while (1)
     {
-        // if (should_immdately_adv)
-        // {
-        //     use_shorten_period = 10;
-        // }
-
         if (memcmp(uicr_predefined_key, "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 16) != 0)
         {
             result = encrypt_payload(&advertising_payload, &raw_data, encryption_nonce, uicr_predefined_key);
@@ -651,39 +306,7 @@ int main(void)
         }
         advertising_payload.counter++;
 
-        //
-        // if (use_shorten_period > 0)
-        // {
-        //     use_shorten_period--;
-        //     k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_SHORTEN_ADV_MIN_INTERVAL)));
-        // }
-        // else
-        // {
         k_sleep(K_MSEC(BT_TICK_TO_MSEC(BT_ADV_MIN_INTERVAL)));
-        // }
     }
-
-    //     for (;;)
-    //     {
-    //         //
-    //         // determine if significant change occurred
-    //         //
-
-    //         static adv_counter = 5;
-    //     }
-
-    //     //
-    //     // encrypt and send adv
-    //     //
-
-    //     k_sleep(K_MSEC(0x4000 * 3)); // in the bad environment, extend adv time to increase chance of reception
-
-    // next:
-    //     k_sleep(K_MSEC(0x3000));
-    // }
-    // while (1)
-    // {
-    //     k_sleep(K_MSEC(1000 * 1000));
-    // }
     return 0;
 }
