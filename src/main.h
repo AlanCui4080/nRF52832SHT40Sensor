@@ -26,7 +26,7 @@ struct bthome_raw_data
     int16_t  temperature;
     uint8_t  humidity_object_id;
     uint16_t humidity;
-}__attribute__((packed));
+} __attribute__((packed));
 
 struct bthome_payload
 {
@@ -35,10 +35,16 @@ struct bthome_payload
     struct bthome_raw_data encrypted_data;
     uint32_t               counter; // little-endian
     uint8_t                mic[4];
-}__attribute__((packed));
+} __attribute__((packed));
 
-#define BT_ADV_MIN_INTERVAL 0x0640
-#define BT_ADV_MAX_INTERVAL 0x0780
-#define BT_TICK_TO_MSEC(ticks) ((ticks)*10 / 16)
+#define BT_ADV_MIN_INTERVAL         8224  // 5.140s
+#define BT_SHORTEN_ADV_MIN_INTERVAL 4112  // 2.570s
+#define BT_ADV_MAX_INTERVAL         10280 // 6.425s
+#define BT_SHORTEN_ADV_MAX_INTERVAL 6168  // 3.855s
+
+#define BATTERY_SAMPLE_INTERVAL_MS  600000 // 600s
+#define SENSOR_SAMPLE_INTERVAL_MS   20000  // 20s
+
+#define BT_TICK_TO_MSEC(ticks)      ((ticks) * 10 / 16)
 
 #endif // _MAIN_H_
