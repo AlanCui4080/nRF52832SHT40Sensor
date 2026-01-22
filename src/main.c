@@ -2,8 +2,8 @@
 #include <zephyr/bluetooth/crypto.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/uuid.h>
-
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/pm/device.h>
 
 #include <zephyr/logging/log.h>
 
@@ -55,9 +55,10 @@ static struct bt_data scan_response_data[] = {
 #define SAADC_INPUT_PIN NRFX_ANALOG_INTERNAL_VDD
 
 static int16_t              battery_sample_voltage;
-static nrfx_saadc_channel_t battery_sample_channel = NRFX_SAADC_DEFAULT_CHANNEL_SE(SAADC_INPUT_PIN, 0);
+static nrfx_saadc_channel_t battery_sample_channel  = NRFX_SAADC_DEFAULT_CHANNEL_SE(SAADC_INPUT_PIN, 0);
+static int                  battery_sample_time_due = 0;
 
-void battery_sample_timer_handler(struct k_timer* timer)
+void battery_sample()
 {
     LOG_INF("fetching saadc");
     nrfx_err_t err = nrfx_saadc_init(DT_IRQ(DT_NODELABEL(adc), priority));
@@ -107,15 +108,32 @@ void battery_sample_timer_handler(struct k_timer* timer)
         battery_sample_voltage,
         raw_data.battery_level);
 }
-K_TIMER_DEFINE(battery_sample_timer, battery_sample_timer_handler, NULL);
+void battery_sample_timer_handler(struct k_timer* timer)
+{
+    battery_sample_time_due = 1;
+}
 
-void sensor_sample_timer_handler(struct k_timer* timer)
+K_TIMER_DEFINE(battery_sample_timer, battery_sample_timer_handler, NULL);
+static int sensor_sample_time_due = 0;
+
+void sensor_sample()
 {
     if (sht40_device == NULL)
     {
         LOG_ERR("SHT4X device pointer is NULL");
         return;
     }
+
+    if (!device_is_ready(sht40_device))
+    {
+        LOG_ERR("sht40 %s is not ready", sht40_device->name);
+        return;
+    }
+    else
+    {
+        LOG_INF("sht40 %s device ready", sht40_device->name);
+    }
+
     if (sensor_sample_fetch(sht40_device))
     {
         LOG_ERR("fetch sample from SHT4X device failed ");
@@ -132,6 +150,10 @@ void sensor_sample_timer_handler(struct k_timer* timer)
     raw_data.humidity    = (uint16_t)(sht40_rh.val1 * 100 + sht40_rh.val2 / 10000);
 
     LOG_INF("sample fetched from SHT4X device: temp=%hd, humidity=%hu", raw_data.temperature, raw_data.humidity);
+}
+void sensor_sample_timer_handler(struct k_timer* timer)
+{
+    sensor_sample_time_due = 1;
 }
 K_TIMER_DEFINE(sensor_sample_timer, sensor_sample_timer_handler, NULL);
 
@@ -228,12 +250,6 @@ int main(void)
 {
     LOG_INF("Alan nRF52832SHT40 BTHomev2 Sensor");
 
-    LOG_INF("starting battery monitoring timer");
-    k_timer_start(&battery_sample_timer, K_NO_WAIT, K_MSEC(BATTERY_SAMPLE_INTERVAL_MS));
-
-    LOG_INF("starting sensor timer");
-    k_timer_start(&sensor_sample_timer, K_NO_WAIT, K_MSEC(SENSOR_SAMPLE_INTERVAL_MS));
-
     LOG_INF("fetching sht40");
     sht40_device = DEVICE_DT_GET_ANY(sensirion_sht4x);
     if (sht40_device == NULL)
@@ -246,15 +262,11 @@ int main(void)
         LOG_INF("sht40 device found: %s", sht40_device->name);
     }
 
-    if (!device_is_ready(sht40_device))
-    {
-        LOG_ERR("sht40 %s is not ready", sht40_device->name);
-        return -1;
-    }
-    else
-    {
-        LOG_INF("sht40 %s device ready", sht40_device->name);
-    }
+    LOG_INF("starting battery monitoring timer");
+    k_timer_start(&battery_sample_timer, K_NO_WAIT, K_MSEC(BATTERY_SAMPLE_INTERVAL_MS));
+
+    LOG_INF("starting sensor timer");
+    k_timer_start(&sensor_sample_timer, K_NO_WAIT, K_MSEC(SENSOR_SAMPLE_INTERVAL_MS));
 
     LOG_INF("enabling bluetooth");
     int result = bt_enable(bt_ready);
@@ -283,6 +295,16 @@ int main(void)
     }
     while (1)
     {
+        if (battery_sample_time_due)
+        {
+            battery_sample_time_due = 0;
+            battery_sample();
+        }
+        if (sensor_sample_time_due)
+        {
+            sensor_sample_time_due = 0;
+            sensor_sample();
+        }
         if (memcmp(uicr_predefined_key, "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 16) != 0)
         {
             result = encrypt_payload(&advertising_payload, &raw_data, encryption_nonce, uicr_predefined_key);
