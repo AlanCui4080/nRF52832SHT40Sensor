@@ -19,3 +19,6 @@ last change and 0.25%RH from pervious sample, send 30 advs.
 - Battery is sampled every 600s, 128X oversampled, 12bit resolution, The 100% level is defined as 3200mV, 0% defined as 2500mV
 - The paring key is stored in UICR_CUSTOM[15:0], default key is 8ba591a5ef8fd59990316d38e04ae9ed when the UICR is ffffffffffffffffffffffffffffffff, you can either program the UICR by "nrfjprog --memwr 0x10001304 --val 8ba591a5" or directly patch the bin
 - SHT4x is working in high resloution mode, heater disabled
+
+### Power Consumption
+- Avg current is 5.59uA, so an CR2032 will provide continuous power for 4.5 years (included self-discharging)
