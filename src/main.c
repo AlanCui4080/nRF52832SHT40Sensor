@@ -27,7 +27,7 @@ static uint8_t       encryption_nonce[16] = { 0 }; // actually 13 bytes
 static const uint8_t predefined_key[16]   = { 0x8b, 0xa5, 0x91, 0xa5, 0xef, 0x8f, 0xd5, 0x99,
                                               0x90, 0x31, 0x6d, 0x38, 0xe0, 0x4a, 0xe9, 0xed };
 
-#define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, BT_ADV_MIN_INTERVAL, BT_ADV_MAX_INTERVAL, NULL)
+#define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_CODED | BT_LE_ADV_OPT_REQUIRE_S8_CODING, BT_ADV_MIN_INTERVAL, BT_ADV_MAX_INTERVAL, NULL)
 
 static struct bthome_raw_data raw_data = { .battery_object_id     = BTHOMEV2_OBJID_BATTERY_U8_1,
                                            .battery_level         = 42,
